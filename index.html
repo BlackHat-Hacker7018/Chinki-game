@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎀 Chinki का मज़ेदार गणित गेम 🎀</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", cursive;
+      background: linear-gradient(to bottom right, #ffe6f2, #e6f7ff);
+      text-align: center;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    h1 { color: #ff4da6; font-size: 2.5em; text-shadow: 2px 2px #fff; margin-bottom: 20px; }
+    #game-box {
+      background-color: #ffffffcc;
+      border-radius: 25px;
+      box-shadow: 0 0 20px #ffcce6;
+      padding: 30px 40px;
+      width: 320px;
+    }
+    #question { font-size: 2em; color: #333; margin: 20px 0; }
+    input {
+      font-size: 1.5em; padding: 5px 10px; width: 100px;
+      border-radius: 10px; border: 2px solid #ff99cc; text-align: center;
+    }
+    button {
+      font-size: 1.2em; background-color: #90ee90; border: none;
+      border-radius: 20px; padding: 10px 25px; cursor: pointer; margin-top: 10px;
+    }
+    button:hover { background-color: #77dd77; transform: scale(1.05); }
+    #message { font-size: 1.3em; margin-top: 15px; height: 60px; }
+    #score { font-size: 1.2em; margin-top: 15px; color: #555; }
+    #startSound {
+      background-color: #ffb3d9; font-size: 1.1em; border-radius: 15px;
+      padding: 8px 15px; cursor: pointer; margin-bottom: 20px; border: none;
+    }
+    .confetti {
+      position: absolute; width: 10px; height: 10px; background: gold;
+      animation: fall 1.5s ease-out forwards;
+    }
+    @keyframes fall {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(200px) rotate(720deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Chinki का मज़ेदार गणित क्विज़ 🎲</h1>
+  <button id="startSound">🔊 Start Game</button>
+
+  <div id="game-box" style="display:none;">
+    <div id="question">?</div>
+    <input type="number" id="answer" placeholder="उत्तर">
+    <br>
+    <button id="answerBtn">जवाब दो!</button>
+    <div id="message"></div>
+    <div id="score">स्कोर: 0</div>
+  </div>
+
+  <audio id="popSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+  <audio id="wrongSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+  <audio id="cheerSound" src="https://actions.google.com/sounds/v1/ambiences/crowd_cheer.ogg"></audio>
+
+  <script>
+    let num1, num2, correctAnswer, score = 0, voiceReady = false, selectedVoice = null;
+
+    function loadVoices() {
+      let voices = speechSynthesis.getVoices();
+      selectedVoice = voices.find(v => v.lang.includes("hi")) || voices.find(v => v.lang.includes("en")) || null;
+      if (selectedVoice) voiceReady = true;
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    function speak(text) {
+      if (!voiceReady) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.voice = selectedVoice;
+      utter.lang = selectedVoice.lang;
+      utter.rate = 1;
+      utter.pitch = 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    }
+
+    function newQuestion() {
+      num1 = Math.floor(Math.random() * 10);
+      num2 = Math.floor(Math.random() * 10);
+      const isAdd = Math.random() > 0.5;
+      correctAnswer = isAdd ? num1 + num2 : Math.abs(num1 - num2);
+      document.getElementById("question").textContent = `${num1} ${isAdd ? '+' : '-'} ${num2} = ?`;
+      document.getElementById("answer").value = "";
+      document.getElementById("message").textContent = "";
+    }
+
+    function checkAnswer() {
+      const val = parseInt(document.getElementById("answer").value);
+      if (isNaN(val)) return;
+      const msg = document.getElementById("message");
+      const pop = document.getElementById("popSound");
+      const wrong = document.getElementById("wrongSound");
+      const cheer = document.getElementById("cheerSound");
+
+      if (val === correctAnswer) {
+        msg.textContent = "🎉 सही जवाब Chinki!";
+        msg.style.color = "green";
+        pop.play();
+        speak("सही जवाब चिंकी!");
+        score++;
+        document.getElementById("score").textContent = `स्कोर: ${score}`;
+        makeConfetti();
+        if (score % 15 === 0) {
+          msg.innerHTML = "🏅 चिंकी! आपने 15 सही जवाब दिए! बधाई हो! 🎉";
+          cheer.play();
+          speak("चिंकी, आपने पन्द्रह सही जवाब दिए! बधाई हो!");
+          makeConfetti();
+        }
+        setTimeout(newQuestion, 2000);
+      } else {
+        msg.innerHTML = `😅 ओह! सही जवाब <b>${correctAnswer}</b> था!`;
+        msg.style.color = "red";
+        wrong.play();
+        speak("गलत जवाब चिंकी, फिर से कोशिश करो!");
+        setTimeout(newQuestion, 2500);
+      }
+    }
+
+    function makeConfetti() {
+      for (let i = 0; i < 30; i++) {
+        const c = document.createElement("div");
+        c.classList.add("confetti");
+        c.style.background = randomColor();
+        c.style.left = Math.random() * window.innerWidth + "px";
+        c.style.top = "40%";
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 1500);
+      }
+    }
+
+    function randomColor() {
+      const colors = ["#ffcc00", "#ff6699", "#66ccff", "#99ff99", "#ff9966"];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    document.getElementById("startSound").addEventListener("click", () => {
+      loadVoices();
+      speak("हेलो चिंकी! चलो एक मज़ेदार गणित खेल खेलते हैं!");
+      document.getElementById("startSound").style.display = "none";
+      document.getElementById("game-box").style.display = "block";
+      newQuestion();
+    });
+
+    document.getElementById("answerBtn").addEventListener("click", checkAnswer);
+    document.getElementById("answer").addEventListener("keypress", e => {
+      if (e.key === "Enter") checkAnswer();
+    });
+  </script>
+</body>
+</html>
